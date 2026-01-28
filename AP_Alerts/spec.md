@@ -1,18 +1,6 @@
-這是一份完整的技術架構提案書（Request for Comments, RFC），你可以直接用於團隊內部的技術評審或向管理層報告。
-
-這份提案將我們之前的討論結構化，並加入了 C4 Model 的架構視角，強調從「維運噩夢」轉向「現代化動態架構」的轉變。
-
----
-
 # 技術提案：基於「配置即數據」的高擴充性自訂告警架構
 
 **Scalable User-Defined Alerting Architecture on Prometheus**
-
-| 屬性 | 內容 |
-| --- | --- |
-| **提案日期** | 2026/01/28 |
-| **目標讀者** | SRE Team, Backend Team, 架構師 |
-| **關鍵詞** | Prometheus, Multi-tenancy, Dynamic Alerting, Group Left, C4 Model |
 
 ---
 
