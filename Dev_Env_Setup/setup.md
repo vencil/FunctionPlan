@@ -13,7 +13,7 @@
 
 ## 1. 架構設計理念 (Architecture)
 
-本配置採用**「混合掛載策略 (Hybrid Mount Strategy)」**，將檔案儲存與運算執行分離，以達到資安與效能的最佳平衡。
+我們採用 **「混合式開發架構 (Hybrid Development Architecture)」**。
 
 * **儲存層 (Storage)**：專案原始碼存放於 **Windows 使用者家目錄** (`C:\Users\%USERNAME%\Projects`)。
 * *目的*：滿足 Claude Desktop 的「Home Directory Lock」安全機制，讓 AI 能讀寫代碼。
@@ -110,44 +110,65 @@ swap=8GB
 
 ## 5. Dev Container 環境配置 (The Engine)
 
-這是讓 Windows 擁有 K8s 能力的核心。我們使用 **Docker-in-Docker (DinD)** 技術來在容器內運行 Kind Cluster。
+這是本架構的心臟。透過一份 `devcontainer.json`，自動完成 Docker-in-Docker、K8s Cluster、以及多語言環境的建置。
 
-在專案根目錄建立 `.devcontainer/devcontainer.json`：
+**檔案位置**：`.devcontainer/devcontainer.json`
 
 ```json
 {
   "name": "Vibe K8s Environment",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
   "features": {
-    // 啟用 Docker-in-Docker (執行 Kind 的必要條件)
+    // 1. Docker-in-Docker (Kind 核心)
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "version": "latest",
       "enableNonRootDocker": "true",
       "moby": "true"
     },
-    // 預裝 K8s 工具鏈
+    // 2. K8s 工具 (kubectl, helm)
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       "version": "latest",
       "minikube": "none",
       "kubectl": "latest",
       "helm": "latest"
+    },
+    // 3. Node.js (很多 MCP connector 需要)
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    // 4. Go (threshold-exporter 開發用)
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.21"
+    },
+    // 5. Python (確保有 pip)
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.10",
+      "installTools": true
     }
   },
-  // 自動初始化指令
-  "postCreateCommand": "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind && kind create cluster --name vibe-cluster",
   
-  // VS Code 擴充套件預裝
+  // [AUTOMATION] 環境建立後的自動化指令：
+  // 1. 安裝 PyYAML (Python 腳本常用)
+  // 2. 安裝 Kind (官方二進制檔)
+  // 3. 自動建立 K8s Cluster (省去手動指令)
+  "postCreateCommand": "pip3 install pyyaml && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind && kind create cluster --name vibe-cluster || echo 'Cluster might already exist'",
+
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-kubernetes-tools.vscode-kubernetes-tools",
         "ms-azuretools.vscode-docker",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "ms-python.python" 
       ]
     }
   },
-  // 給予特權模式 (執行 K8s 必要)
-  "runArgs": ["--privileged"]
+  
+  // 給予容器特權以運行 K8s，並固定容器名稱 (方便 Debug)
+  "runArgs": [
+    "--privileged", 
+    "--name", "vibe-dev-container"
+  ]
 }
 
 ```
